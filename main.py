@@ -1,3 +1,4 @@
+import locale
 import os
 from decimal import Decimal
 
@@ -14,7 +15,16 @@ bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start_command(message):
-    bot.send_message(message.chat.id, 'qwe')
+    start_message = (f'<b>Steam Inventory Bot</b>'
+                     f'\n\nБот отображает цены на кейсы Counter-Strike и профит по портфелю. Цены обновляются раз в 5 минут'
+                     f'\n\nКоманды:'
+                     f'\n/start — выводит информацию по боту'
+                     f'\n/add — добавляет кейс'
+                     f'\n/remove — удаляет кейс'
+                     f'\n/info — выводит краткую информацию'
+                     f'\n/fullinfo — выводит подробную информацию')
+
+    bot.send_message(message.chat.id, start_message, parse_mode='HTML')
 
 
 @bot.message_handler(commands=['add'], content_types=['text'])
@@ -58,46 +68,31 @@ def _remove_case(message):
                                           f'\n\n/remove Revolution Case')
 
 
-@bot.message_handler(commands=['fullinfo'], content_types=['text'])
-def _show_full_info(message):  #
+@bot.message_handler(commands=['info'], content_types=['text'])
+def _show_info(message):  # основная информация по портфелю
     if len(message.text.split()) > 1:
         pass
     else:
-        bot.send_message(message.chat.id, 'Поиск...')
+        bot.send_message(message.chat.id, 'Обновление...')
         result_raw = show_info(message.chat.id)
         if result_raw == 'Записей не найдено':
             bot.send_message(message.chat.id, result_raw)
         else:
-            result = ''
-            start_sum = 0
-            current_sum = 0
+            result = result_to_str(result_raw)
+            bot.send_message(message.chat.id, result, parse_mode='HTML')
 
-            for i in result_raw:  # [id, user_id, case_name, case_quantity, average_purchase_price, case_price, update_timestamp]
-                current_case = (
-                    f"\n<b>{i[2]}</b>"
-                    f"\nКол-во: {i[3]}"
-                    f"\nЦена покупки: {i[4]} ₽"
-                    f"\nТекущая цена: {i[5]} ₽"
-                    f"\nТекущая стоимость: {i[5] * i[3]} ₽\n")
 
-                start_sum += i[4] * i[3]
-                current_sum += i[5] * i[3]
-                result += current_case
-
-            fee = Decimal('0.13')  # комиссия Steam
-
-            result += '\n==='
-            result += f'\n\nОбщая стоимость покупки: {start_sum} ₽'
-            result += f'\nОбщая текущая стоимость: {current_sum} ₽'
-            result += f'\nКомиссия Steam (13%): {round(current_sum * fee, 2)} ₽'
-
-            profit = round((current_sum * Decimal('0.87')) - start_sum, 2)
-
-            if profit > 0:
-                result += f'\n\n✅ <b>Профит (с учетом комиссии):</b> {profit} ₽'
-            else:
-                result += f'\n\n❌ <b>Профит (с учетом комиссии):</b> {profit} ₽'
-
+@bot.message_handler(commands=['fullinfo'], content_types=['text'])
+def _show_full_info(message):  # полная информация по портфелю
+    if len(message.text.split()) > 1:
+        pass
+    else:
+        bot.send_message(message.chat.id, 'Обновление...')
+        result_raw = show_info(message.chat.id)
+        if result_raw == 'Записей не найдено':
+            bot.send_message(message.chat.id, result_raw)
+        else:
+            result = result_to_str(result_raw, full_info=True)
             bot.send_message(message.chat.id, result, parse_mode='HTML')
 
 
@@ -125,6 +120,55 @@ def message_checker(case_name, case_quantity=None, average_purchase_price=None):
             pass
 
     return 'ok'
+
+
+def result_to_str(result_raw, full_info=False):  # результат в строку
+    locale.setlocale(locale.LC_ALL, 'ru_RU.UTF-8')
+
+    result = ''
+    start_sum = 0
+    current_sum = 0
+
+    if full_info:  # подробная информация по портфелю
+        result += '<b>Подробная информация по портфелю:</b>\n'
+
+        for i in result_raw:  # [id, user_id, case_name, case_quantity, average_purchase_price, case_price, update_timestamp]
+            current_case = (
+                f"\n<b>{i[2]}</b>"
+                f"\nКол-во: {i[3]}"
+                f"\nЦена покупки: {locale.currency(i[4], grouping=True)}"
+                f"\nСтоимость покупки: {locale.currency(i[4] * i[3], grouping=True)}"
+                f"\nТекущая цена: {locale.currency(i[5], grouping=True)}"
+                f"\nТекущая стоимость: {locale.currency(i[5] * i[3], grouping=True)}\n")
+
+            start_sum += i[4] * i[3]
+            current_sum += i[5] * i[3]
+            result += current_case
+
+        fee = Decimal('0.13')  # комиссия Steam
+
+        result += '\n==='
+        result += f'\n\nОбщая стоимость покупки: {locale.currency(start_sum, grouping=True)}'
+        result += f'\nОбщая текущая стоимость: {locale.currency(current_sum, grouping=True)}'
+        result += f'\nКомиссия Steam (13%): {locale.currency(current_sum * fee, grouping=True)}'
+
+    else:  # краткая информация по портфелю
+        result += '<b>Краткая информация по портфелю:</b>\n'
+
+        for i in result_raw:
+            start_sum += i[4] * i[3]
+            current_sum += i[5] * i[3]
+            result += f"\n{i[2]}"
+
+        result += f'\n\n==='
+
+    profit = (current_sum * Decimal('0.87')) - start_sum
+    if profit > 0:
+        result += f'\n\n✅ <b>Профит (с учетом комиссии):</b> {locale.currency(profit, grouping=True)}'
+    else:
+        result += f'\n\n❌ <b>Профит (с учетом комиссии):</b> {locale.currency(profit, grouping=True)}'
+
+    return result
 
 
 bot.infinity_polling()

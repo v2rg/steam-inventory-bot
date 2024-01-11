@@ -190,7 +190,7 @@ def show_info(user_id):  # показ портфеля
                                 f"SET case_price = '{new_price}', update_timestamp = '{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}' "
                                 f"WHERE case_name = '{i[2]}'")  # обновление цены
 
-                            print(f'Цена кейса {i[2]} обновлена')
+                            # print(f'Цена кейса {i[2]} обновлена')
             else:
                 return 'Записей не найдено'
 
@@ -214,7 +214,6 @@ def show_info(user_id):  # показ портфеля
             conn.close()
 
     if len(result) > 0:
-        # print(result)
         return result
     else:
         return 'Записей не найдено'
