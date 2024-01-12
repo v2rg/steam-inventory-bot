@@ -138,7 +138,7 @@ def result_to_str(result_raw, full_info=False):  # результат в стр�
                 f"\nКол-во: {i[3]}"
                 f"\nЦена покупки: {locale.currency(i[4], grouping=True)}"
                 f"\nСтоимость покупки: {locale.currency(i[4] * i[3], grouping=True)}"
-                f"\nТекущая цена: {locale.currency(i[5], grouping=True)}"
+                f"\nТекущая цена: <b>{locale.currency(i[5], grouping=True)}</b>"
                 f"\nТекущая стоимость: {locale.currency(i[5] * i[3], grouping=True)}\n")
 
             start_sum += i[4] * i[3]
