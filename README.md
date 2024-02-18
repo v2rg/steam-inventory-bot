@@ -32,11 +32,11 @@
 
 В БД нужно создать две таблицы:
 
-- **Steam_case** (id PK, название кейса, актуальная цена, дата обновления):
+- **Steam_case** (id PK, название_кейса, актуальная_цена, дата_обновления):
 ``` sql
 CREATE TABLE Steam_case (id serial PRIMARY KEY, case_name VARCHAR(64) UNIQUE, case_price DECIMAL(7,2), update_timestamp TIMESTAMP);
 ```
-- **User_case** (id PK, id пользователя, название кейса FK, количество кейсов, средняя цена покупки кейса):
+- **User_case** (id PK, id_пользователя, название_кейса FK, количество_кейсов, средняя_цена_покупки_кейса):
 ``` sql
 CREATE TABLE User_case (id serial PRIMARY KEY, user_id VARCHAR(64), case_name INTEGER, case_quantity INTEGER, average_purchase_price DECIMAL(7,2), FOREIGN KEY (case_name) REFERENCES Steam_case (id) ON DELETE CASCADE);
 ```
